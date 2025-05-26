@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/styles.css" />
+
+    <title>Conversor de Moedas</title>
+</head>
+
+<body>
+    <img src="/imgs/coverter-logo.svg" alt="Converter logo" />
+
+    <main>
+        <form>
+            <label for="value-input">valor</label>
+            <input type="text" name="amount" id="value-input" placeholder="0" required />
+
+            <label for="currency-type">moeda</label>
+            <select name="currency-type" id="currency-type" required>
+                <option value="" disabled selected hidden>Selecione a moeda</option>
+                <option value="USD">Dólar Americano</option>
+                <option value="EUR">Euro</option>
+                <option value="GBP">Libra Esterlina</option>
+            </select>
+
+            <button type="submit">Converter em reais</button>
+        </form>
+
+        <footer>
+            <span id="exchange-rate">US$ 1 = R$ 6,32</span>
+            <h1 id="converted-value">632,00 Reais</h1>
+        </footer>
+    </main>
+</body>
+
+</html>
