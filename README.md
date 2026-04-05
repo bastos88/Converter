@@ -7,17 +7,26 @@ Principais mudanças nesta versão:
 - Tratamento de loading, erro e uso de cache (TTL de 60s)
 - Arquitetura simples com `RatesService` para centralizar fetch e cache
 
-## Como rodar localmente
-1. Abra um terminal na pasta do projeto (`c:\Users\leozi\Converter`).
-2. Inicie um servidor HTTP estático (ex.: Python):
+## Como rodar localmente (sem Python)
+Abra um terminal na pasta do projeto (`c:\Users\leozi\Converter`). Você pode usar qualquer servidor estático; exemplos:
+
+- Usando `npx` (não precisa instalar dependências):
 
 ```powershell
-python -m http.server 8000
+npx http-server -p 8000
 ```
 
-3. Abra no navegador: `http://localhost:8000`
+- Ou usando `npm` script fornecido (requer Node):
 
-Observação: o aplicativo usa fetch para consultar uma API pública; verifique conectividade de rede.
+```powershell
+npm start
+```
+
+- Ou a extensão Live Server do VSCode.
+
+Depois abra no navegador: `http://localhost:8000`
+
+Observação: o aplicativo faz fetch diretamente para a AwesomeAPI; verifique conectividade de rede e permita requisições CORS no navegador.
 
 ## Como funciona (resumo técnico)
 - Ao carregar a página o app tenta buscar as cotações USD/BRL, EUR/BRL e GBP/BRL.
