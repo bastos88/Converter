@@ -101,6 +101,45 @@ function updateExchangeRateDisplay(code, rate) {
     descriptionValues.textContent = `${currencySymbol(code)} 1 = ${formatBRL(rate)}`;
 }
 
+// Update exchange rate display when user selects a currency
+currency.addEventListener('change', async () => {
+    const selected = currency.value;
+    if (!selected) {
+        updateExchangeRateDisplay('', null);
+        return;
+    }
+
+    setStatus('Atualizando cotação...', 'loading');
+    try {
+        let rate;
+        try {
+            rate = await RatesService.getRate(selected);
+        } catch (fetchErr) {
+            const cached = RatesService.getCachedRates();
+            if (cached && cached[selected]) {
+                rate = cached[selected];
+                setStatus('Usando cotações em cache', 'warn');
+            } else throw fetchErr;
+        }
+
+        updateExchangeRateDisplay(selected, rate);
+
+        // If user already typed an amount, update the converted value immediately
+        const amountStr = input.value.trim().replace(',', '.');
+        const amount = parseFloat(amountStr);
+        if (amount && !isNaN(amount) && amount > 0) {
+            const total = amount * rate;
+            result.textContent = `${formatBRL(total)} Reais`;
+            footer.classList.add('show-result');
+        }
+
+        setStatus('', '');
+    } catch (err) {
+        console.error(err);
+        setStatus('Não foi possível obter a cotação', 'error');
+    }
+});
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const amountStr = input.value.trim().replace(',', '.');
