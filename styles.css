@@ -149,3 +149,20 @@ input:disabled, select:disabled, button:disabled { opacity: 0.6; cursor: not-all
   .btn-primary { width: 100%; }
   .result { font-size: 1.5rem; }
 }
+
+/* Fix contrast for native dropdown options */
+select option,
+select optgroup {
+  background-color: var(--bg-800);
+  color: var(--text);
+}
+
+/* Selected option highlight */
+option:checked {
+  background-color: var(--accent-600);
+  color: #ffffff;
+}
+
+/* Fallback for some platforms where option styling is limited */
+select::-ms-expand { color: var(--text); }
+
