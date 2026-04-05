@@ -171,6 +171,14 @@ input:disabled, select:disabled, button:disabled { opacity: 0.6; cursor: not-all
   .tagline .dot { animation: none; }
 }
 
+/* JS-driven fallback state for the dot (ensures blink in all browsers) */
+.tagline .dot.live-on {
+  color: var(--live-green) !important;
+  transform: scale(1.08);
+  text-shadow: 0 6px 18px rgba(54,211,127,0.22);
+  transition: color 260ms ease, transform 260ms ease, text-shadow 260ms ease;
+}
+
 @media (max-width: 600px) {
   .app-header { position: static; margin-bottom: 1rem; display:flex; justify-content:center; }
   .app-header .logo { width: 96px; }

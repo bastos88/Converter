@@ -187,3 +187,23 @@ form.addEventListener('submit', async (e) => {
 });
 
 init();
+
+// Fallback JS blink for the tagline dot (some browsers/systems suppress CSS color animation)
+(function startDotBlinkFallback() {
+    const dot = document.querySelector('.tagline .dot');
+    if (!dot) return;
+    // Respect reduced motion preference
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+
+    let on = false;
+    const intervalMs = 800;
+    // Ensure initial state
+    dot.classList.remove('live-on');
+
+    setInterval(() => {
+        on = !on;
+        if (on) dot.classList.add('live-on');
+        else dot.classList.remove('live-on');
+    }, intervalMs);
+})();
