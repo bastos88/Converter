@@ -188,11 +188,8 @@ form.addEventListener('submit', async (e) => {
 
 init();
 
-// Robust JS blink for the tagline dot (works even if CSS color animation is suppressed)
-(function startDotBlinkFallback() {
-    const dot = document.querySelector('.tagline .dot');
-    if (!dot) return;
-    // Respect reduced motion preference
+// Robust blink: poll for the dot and start inline-style blinking (handles Live Preview timing)
+(function ensureDotBlink() {
     const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
@@ -200,30 +197,50 @@ init();
     const liveGreen = rootStyles.getPropertyValue('--live-green').trim() || '#36d37f';
     const muted = rootStyles.getPropertyValue('--muted').trim() || '#9fb0e6';
 
-    // Disable CSS keyframe animation on this element to avoid conflicts
-    dot.style.animation = 'none';
-    dot.style.webkitAnimation = 'none';
-    dot.style.transition = 'color 220ms ease, transform 220ms ease, text-shadow 220ms ease';
+    let intervalId = null;
 
-    let on = false;
-    const intervalMs = 800;
+    function startBlink(dot) {
+        if (!dot) return false;
+        dot.style.animation = 'none';
+        dot.style.webkitAnimation = 'none';
+        dot.style.transition = 'color 220ms ease, transform 220ms ease, text-shadow 220ms ease';
 
-    function setOnState(state) {
-        if (state) {
-            dot.style.color = liveGreen;
-            dot.style.transform = 'scale(1.08)';
-            dot.style.textShadow = '0 8px 22px rgba(54,211,127,0.22)';
-        } else {
-            dot.style.color = muted;
-            dot.style.transform = 'scale(1)';
-            dot.style.textShadow = 'none';
-        }
+        let on = false;
+        const intervalMs = 700;
+        // clear existing interval if any
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(() => {
+            on = !on;
+            dot.style.color = on ? liveGreen : muted;
+            dot.style.transform = on ? 'scale(1.08)' : 'scale(1)';
+            dot.style.textShadow = on ? '0 8px 22px rgba(54,211,127,0.22)' : 'none';
+        }, intervalMs);
+        return true;
     }
 
-    // start alternating
-    setOnState(false);
-    setInterval(() => {
-        on = !on;
-        setOnState(on);
-    }, intervalMs);
+    // Try immediate start; if not found, poll for the element (handles timing issues)
+    const tryStart = () => {
+        const dot = document.querySelector('.tagline .dot');
+        return startBlink(dot);
+    };
+
+    if (!tryStart()) {
+        let attempts = 0;
+        const poll = setInterval(() => {
+            attempts++;
+            if (tryStart()) clearInterval(poll);
+            if (attempts > 40) clearInterval(poll); // stop after ~8s
+        }, 200);
+    }
+
+    // Pause blinking when page hidden to save CPU
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = null;
+        } else {
+            const dot = document.querySelector('.tagline .dot');
+            if (dot) startBlink(dot);
+        }
+    });
 })();
