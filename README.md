@@ -1,70 +1,29 @@
-# 💱 Conversor de Moedas com JavaScript
+# 💱 Conversor de Moedas com JavaScript (integração com API)
 
-Projeto desenvolvido para praticar manipulação de formulários, eventos e formatação de dados em JavaScript. O usuário insere um valor em Reais (BRL) e escolhe uma moeda estrangeira (USD, EUR ou GBP) para ver a conversão com base em cotações pré-definidas.
+Este projeto converte valores de moedas estrangeiras (USD, EUR, GBP) para BRL usando cotações em tempo real da AwesomeAPI.
 
-## 🧾 Descrição
+Principais mudanças nesta versão:
+- Integração com a API pública da AwesomeAPI (`economia.awesomeapi.com.br`) para buscar cotações atualizadas
+- Tratamento de loading, erro e uso de cache (TTL de 60s)
+- Arquitetura simples com `RatesService` para centralizar fetch e cache
 
-Este conversor simples calcula o valor em reais a partir de uma moeda estrangeira selecionada, utilizando valores fixos definidos no código. A interface é responsiva, intuitiva e atualiza os resultados dinamicamente ao submeter o formulário.
+## Como rodar localmente
+1. Abra um terminal na pasta do projeto (`c:\Users\leozi\Converter`).
+2. Inicie um servidor HTTP estático (ex.: Python):
 
-> ⚠️ *Versão atual utiliza valores estáticos de cotação. Versão futura poderá usar API externa.*
-
-## ⚙️ Funcionalidades
-
-- Conversão de BRL a partir das moedas:
-  - 💵 Dólar Americano (USD)
-  - 💶 Euro (EUR)
-  - 💷 Libra Esterlina (GBP)
-- Validação do input para permitir apenas números
-- Formatação do resultado final no padrão de moeda brasileira (BRL)
-- Exibição dinâmica do valor convertido e da taxa usada
-
-## 🚀 Tecnologias usadas
-
-- HTML5
-- CSS3
-- JavaScript (puro / Vanilla JS)
-
-## 📐 Como funciona
-
-1. O usuário insere um valor numérico no campo.
-2. Ao escolher a moeda e enviar o formulário, o JavaScript:
-   - Impede o envio padrão (`preventDefault`)
-   - Verifica a moeda selecionada
-   - Converte o valor com base na cotação fixa
-   - Formata o resultado em Real (BRL)
-   - Exibe o resultado no rodapé da página
-
-## 📄 Lógica da conversão
-
-```javascript
-const EUR = 6.41;
-const USD = 6.11;
-const GBP = 7.15;
-
-function convertCurrencies(amount, price, symbol) {
-  const total = amount * price;
-  const convertido = Number(total).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  });
-  result.textContent = `${convertido} Reais`;
-}
-
-```
-## 📦 Como usar localmente
-
-Clone ou baixe este repositório:
+```powershell
+python -m http.server 8000
 ```
 
-git clone https://github.com/seu-usuario/conversor-moedas
-```
+3. Abra no navegador: `http://localhost:8000`
 
+Observação: o aplicativo usa fetch para consultar uma API pública; verifique conectividade de rede.
 
-🧠 Melhorias futuras (To Do)
- Buscar cotações em tempo real via API (como a AwesomeAPI)
+## Como funciona (resumo técnico)
+- Ao carregar a página o app tenta buscar as cotações USD/BRL, EUR/BRL e GBP/BRL.
+- As cotações são armazenadas em cache por 60 segundos (TTL).
+- Ao submeter o formulário o app obtém a taxa do `RatesService` e calcula o total em BRL usando `async/await`.
+- Se a API falhar, o app tenta usar o cache; se não houver cache, exibe mensagem de erro e permite retry.
 
- Permitir converter em ambas as direções (BRL → USD / USD → BRL)
-
- Adicionar mais moedas (JPY, ARS, CAD, etc.)
-
- Histórico de conversões
+## Licença
+Uso livre para fins de aprendizado e portfólio.
