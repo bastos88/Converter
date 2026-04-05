@@ -189,58 +189,148 @@ form.addEventListener('submit', async (e) => {
 init();
 
 // Robust blink: poll for the dot and start inline-style blinking (handles Live Preview timing)
-(function ensureDotBlink() {
-    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) return;
+// Blink control helpers and opt-in toggle handling
+function isBlinkOptIn() {
+    try { return localStorage.getItem('blinkOptIn') === 'true'; } catch (e) { return false; }
+}
 
-    const rootStyles = getComputedStyle(document.documentElement);
-    const liveGreen = rootStyles.getPropertyValue('--live-green').trim() || '#36d37f';
-    const muted = rootStyles.getPropertyValue('--muted').trim() || '#9fb0e6';
+function setBlinkOptIn(val) {
+    try { localStorage.setItem('blinkOptIn', val ? 'true' : 'false'); } catch (e) {}
+    if (val) document.body.classList.add('force-motion'); else document.body.classList.remove('force-motion');
+    console.log('[blink] setBlinkOptIn ->', !!val);
+}
 
-    let intervalId = null;
+function enableBlinkNow() {
+    const dot = document.querySelector('.tagline .dot');
+    if (!dot) return false;
+    if (!dot.classList.contains('blink-enabled')) dot.classList.add('blink-enabled');
 
-    function startBlink(dot) {
-        if (!dot) return false;
-        dot.style.animation = 'none';
-        dot.style.webkitAnimation = 'none';
-        dot.style.transition = 'color 220ms ease, transform 220ms ease, text-shadow 220ms ease';
-
-        let on = false;
-        const intervalMs = 700;
-        // clear existing interval if any
-        if (intervalId) clearInterval(intervalId);
-        intervalId = setInterval(() => {
-            on = !on;
-            dot.style.color = on ? liveGreen : muted;
-            dot.style.transform = on ? 'scale(1.08)' : 'scale(1)';
-            dot.style.textShadow = on ? '0 8px 22px rgba(54,211,127,0.22)' : 'none';
-        }, intervalMs);
-        return true;
+    // If CSS animation is suppressed (e.g. prefers-reduced-motion), start a JS fallback toggler.
+    try {
+        const cs = getComputedStyle(dot);
+        const animationName = cs.getPropertyValue('animation-name') || cs.animationName;
+        const animationDuration = cs.getPropertyValue('animation-duration') || cs.animationDuration;
+        if (!animationName || animationName === 'none' || animationDuration === '0s') {
+            startJsBlink(dot);
+        } else {
+            stopJsBlink(dot);
+        }
+    } catch (e) {
+        // ignore
     }
+    return true;
+}
 
-    // Try immediate start; if not found, poll for the element (handles timing issues)
-    const tryStart = () => {
-        const dot = document.querySelector('.tagline .dot');
-        return startBlink(dot);
+function startJsBlink(dot) {
+    if (!dot) return;
+    if (dot._blinkIntervalId) return; // already running
+    const rootStyles = getComputedStyle(document.documentElement);
+    const liveGreen = (rootStyles.getPropertyValue('--live-green') || '#36d37f').trim();
+    const muted = (rootStyles.getPropertyValue('--muted') || '#9fb0e6').trim();
+
+    // save originals
+    dot._blinkOrig = {
+        color: dot.style.color || '',
+        textShadow: dot.style.textShadow || '',
+        transform: dot.style.transform || ''
     };
 
-    if (!tryStart()) {
+    let on = false;
+    dot._blinkIntervalId = setInterval(() => {
+        on = !on;
+        dot.style.color = on ? liveGreen : muted;
+        dot.style.transform = on ? 'scale(1.08)' : 'scale(1)';
+        dot.style.textShadow = on ? '0 8px 22px rgba(54,211,127,0.22)' : 'none';
+    }, 1100);
+
+    // Pause when page hidden
+    dot._blinkVisibilityHandler = () => {
+        if (document.hidden) {
+            if (dot._blinkIntervalId) { clearInterval(dot._blinkIntervalId); dot._blinkIntervalId = null; }
+        } else {
+            if (!dot._blinkIntervalId) startJsBlink(dot);
+        }
+    };
+    document.addEventListener('visibilitychange', dot._blinkVisibilityHandler);
+    console.log('[blink] JS fallback started');
+}
+
+function stopJsBlink(dot) {
+    if (!dot) return;
+    if (dot._blinkIntervalId) { clearInterval(dot._blinkIntervalId); dot._blinkIntervalId = null; }
+    if (dot._blinkVisibilityHandler) { document.removeEventListener('visibilitychange', dot._blinkVisibilityHandler); delete dot._blinkVisibilityHandler; }
+    if (dot._blinkOrig) {
+        dot.style.color = dot._blinkOrig.color;
+        dot.style.textShadow = dot._blinkOrig.textShadow;
+        dot.style.transform = dot._blinkOrig.transform;
+        delete dot._blinkOrig;
+    }
+    console.log('[blink] JS fallback stopped');
+}
+
+// Initialize toggle UI (if present)
+(() => {
+    const toggle = document.getElementById('blink-toggle');
+    if (isBlinkOptIn()) document.body.classList.add('force-motion');
+    if (toggle) {
+        toggle.checked = isBlinkOptIn();
+        toggle.addEventListener('change', (e) => {
+            setBlinkOptIn(!!e.target.checked);
+            if (e.target.checked) enableBlinkNow(); else {
+                const dot = document.querySelector('.tagline .dot');
+                if (dot) dot.classList.remove('blink-enabled');
+            }
+        });
+    }
+})();
+
+// Robust blink activation (polls for element; respects user opt-in)
+(function enableDotCssBlink() {
+    console.log('[blink] enableDotCssBlink start');
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    console.log('[blink] prefers-reduced-motion:', prefersReduced);
+    const optIn = isBlinkOptIn();
+    if (prefersReduced && !optIn) {
+        console.log('[blink] reduced-motion is enabled and user did not opt-in; skipping activation');
+        return;
+    }
+    if (optIn) document.body.classList.add('force-motion');
+
+    if (!enableBlinkNow()) {
         let attempts = 0;
         const poll = setInterval(() => {
             attempts++;
-            if (tryStart()) clearInterval(poll);
-            if (attempts > 40) clearInterval(poll); // stop after ~8s
+            console.log('[blink] polling attempt', attempts);
+            if (enableBlinkNow()) {
+                console.log('[blink] enabled during poll on attempt', attempts);
+                clearInterval(poll);
+                return;
+            }
+            if (attempts > 40) {
+                console.warn('[blink] giving up after', attempts, 'poll attempts');
+                clearInterval(poll);
+            }
         }, 200);
     }
 
-    // Pause blinking when page hidden to save CPU
     document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            if (intervalId) clearInterval(intervalId);
-            intervalId = null;
+        console.log('[blink] visibilitychange (hidden=%s)', document.hidden);
+        if (!document.hidden) enableBlinkNow();
+    });
+})();
+
+// Simple toggle listener: add/remove .blink class on the dot (user snippet)
+(() => {
+    const toggle = document.getElementById('blink-toggle');
+    const dot = document.querySelector('.tagline .dot') || document.querySelector('.dot');
+    if (!toggle || !dot) return;
+    toggle.addEventListener('change', () => {
+        if (toggle.checked) {
+            dot.classList.add('blink');
         } else {
-            const dot = document.querySelector('.tagline .dot');
-            if (dot) startBlink(dot);
+            dot.classList.remove('blink');
         }
     });
+    // sync initial state: if dot already has blink, ensure toggle reflects it
+    try { toggle.checked = dot.classList.contains('blink'); } catch (e) {}
 })();
