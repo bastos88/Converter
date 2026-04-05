@@ -188,7 +188,7 @@ form.addEventListener('submit', async (e) => {
 
 init();
 
-// Fallback JS blink for the tagline dot (some browsers/systems suppress CSS color animation)
+// Robust JS blink for the tagline dot (works even if CSS color animation is suppressed)
 (function startDotBlinkFallback() {
     const dot = document.querySelector('.tagline .dot');
     if (!dot) return;
@@ -196,14 +196,34 @@ init();
     const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) return;
 
+    const rootStyles = getComputedStyle(document.documentElement);
+    const liveGreen = rootStyles.getPropertyValue('--live-green').trim() || '#36d37f';
+    const muted = rootStyles.getPropertyValue('--muted').trim() || '#9fb0e6';
+
+    // Disable CSS keyframe animation on this element to avoid conflicts
+    dot.style.animation = 'none';
+    dot.style.webkitAnimation = 'none';
+    dot.style.transition = 'color 220ms ease, transform 220ms ease, text-shadow 220ms ease';
+
     let on = false;
     const intervalMs = 800;
-    // Ensure initial state
-    dot.classList.remove('live-on');
 
+    function setOnState(state) {
+        if (state) {
+            dot.style.color = liveGreen;
+            dot.style.transform = 'scale(1.08)';
+            dot.style.textShadow = '0 8px 22px rgba(54,211,127,0.22)';
+        } else {
+            dot.style.color = muted;
+            dot.style.transform = 'scale(1)';
+            dot.style.textShadow = 'none';
+        }
+    }
+
+    // start alternating
+    setOnState(false);
     setInterval(() => {
         on = !on;
-        if (on) dot.classList.add('live-on');
-        else dot.classList.remove('live-on');
+        setOnState(on);
     }, intervalMs);
 })();
